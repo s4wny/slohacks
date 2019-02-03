@@ -26,16 +26,34 @@ anomaly_data$TRANSACTION_DATE = dmy(anomaly_data$TRANSACTION_DATE)
 newdata <- data.frame(anomaly_data$TRANSACTION_DATE,anomaly_data$DELIVERED_PRICE)
 ex1_tbl_time <- as_tbl_time(newdata, anomaly_data.TRANSACTION_DATE)
 
-dataGraph <- ex1_tbl_time%>%
-  as_period("daily")%>%
-  time_decompose(anomaly_data.DELIVERED_PRICE, method = "stl") %>%
-  anomalize(remainder, method = "iqr") %>%
+cleaner_data <- anomaly_data %>% 
+  filter(DELIVERED_QUANTITY>0&DC_QTY>0)%>%
+  mutate(unit_price_discrepancy = abs((DELIVERED_PRICE/DELIVERED_QUANTITY)-UNIT_PRICE))
+
+tsd <- cleaner_data %>%
+  filter(unit_price_discrepancy<=1&DC_QTY==DELIVERED_QUANTITY)%>%
+  mutate(month = month(TRANSACTION_DATE)) %>%
+  filter(ACCOUNT_NAME=="BRINKER-CHILI'S #075")%>%
+  filter(ORGANIZATION.NUMBER=="FRESHPOINT_158")%>%
+  filter(CENTER_PROD_NUM  == 101217)
+
+#not just delivered price, but also other numerical variables
+tsd <- data.frame(tsd$TRANSACTION_DATE,tsd$DELIVERED_PRICE)
+tsd_tbl_time <- as_tbl_time(tsd, tsd.TRANSACTION_DATE)
+
+dataGraph <- tsd_tbl_time%>%
+  time_decompose(tsd.DELIVERED_PRICE, method = "STL",frequency = "auto",trend = "auto") %>%
+  anomalize(remainder, method = "iqr",alpha = 0.025) %>%
   time_recompose() %>%
   # Anomaly Visualization
-  plot_anomalies(time_recomposed = TRUE, ncol = 3, alpha_dots = 0.25) +
-  labs(title = "Tidyverse Anomalies", subtitle = "STL + IQR Methods")
+  plot_anomalies(time_recomposed = TRUE, ncol = 3, alpha_dots = 0.25, color_no = "#0c5e2b", color_yes = "#e86e22", fill_ribbon = "#a4c1ad") +
+  labs(title = "ITRADE Anomaly Detection", subtitle = "ACCOUNT, ORGANIZATION, DCPRODUCTNAME", x= "Transaction Date", 
+       y = "Delivered Price")
 
 ui <- fluidPage(theme = shinytheme("flatly"),
+  sidebarPanel (
+    selectInput("ACCOUNT_NAME", label= "Account", choices = as.vector(unique(anomaly_data$ACCOUNT_NAME)))
+  ),
   mainPanel (
     plotOutput("plot")
   )
@@ -44,6 +62,10 @@ ui <- fluidPage(theme = shinytheme("flatly"),
 server <- function(input, output) {
   output$plot <- renderPlot({
     dataGraph
+  })
+  
+  output$histogram <- renderPlot({
+    #ggplot(...)
   })
 }
 
