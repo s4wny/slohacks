@@ -1,0 +1,62 @@
+---
+title: "AnomalizingData"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+anomaly_data <- read.csv("Anomaly_Data.csv")
+
+anomaly_data$DC_QTY <- as.numeric(as.character(anomaly_data$DC_QTY))
+```
+
+```{r}
+anomaly_data$TRANSACTION_DATE = str_replace_all(anomaly_data$TRANSACTION_DATE,pattern = "MAR",replacement="03")
+anomaly_data$TRANSACTION_DATE = str_replace_all(anomaly_data$TRANSACTION_DATE,pattern = "APR",replacement="04")
+anomaly_data$TRANSACTION_DATE = str_replace_all(anomaly_data$TRANSACTION_DATE,pattern = "MAY",replacement="05")
+anomaly_data$TRANSACTION_DATE = str_replace_all(anomaly_data$TRANSACTION_DATE,pattern = "JUN",replacement="06")
+
+anomaly_data$TRANSACTION_DATE = str_replace_all(anomaly_data$TRANSACTION_DATE,pattern = "JUL",replacement="07")
+anomaly_data$TRANSACTION_DATE = str_replace_all(anomaly_data$TRANSACTION_DATE,pattern = "AUG",replacement="08")
+anomaly_data$TRANSACTION_DATE = str_replace_all(anomaly_data$TRANSACTION_DATE,pattern = "SEP",replacement="09")
+anomaly_data$TRANSACTION_DATE = str_replace_all(anomaly_data$TRANSACTION_DATE,pattern = "OCT",replacement="10")
+
+anomaly_data$TRANSACTION_DATE = str_replace_all(anomaly_data$TRANSACTION_DATE,pattern = "NOV",replacement="11")
+anomaly_data$TRANSACTION_DATE = str_replace_all(anomaly_data$TRANSACTION_DATE,pattern = "DEC",replacement="12")
+anomaly_data$TRANSACTION_DATE = str_replace_all(anomaly_data$TRANSACTION_DATE,pattern = "JAN",replacement="01")
+anomaly_data$TRANSACTION_DATE = str_replace_all(anomaly_data$TRANSACTION_DATE,pattern = "FEB",replacement="02")
+```
+
+```{r}
+anomaly_data$TRANSACTION_DATE = dmy(anomaly_data$TRANSACTION_DATE)
+```
+
+```{r}
+library(anomalize)
+library(tidyverse)
+library(tibbletime)
+```
+
+
+```{r}
+newdata <- data.frame(anomaly_data$TRANSACTION_DATE,anomaly_data$DELIVERED_PRICE)
+ex1_tbl_time <- as_tbl_time(newdata, anomaly_data.TRANSACTION_DATE)
+
+```
+
+
+
+```{r}
+ex1_tbl_time%>%
+    as_period("daily")%>%
+    time_decompose(anomaly_data.DELIVERED_PRICE, method = "stl") %>%
+    anomalize(remainder, method = "iqr") %>%
+    time_recompose() %>%
+    # Anomaly Visualization
+    plot_anomalies(time_recomposed = TRUE, ncol = 3, alpha_dots = 0.25) +
+    labs(title = "Tidyverse Anomalies", subtitle = "STL + IQR Methods")
+```
+

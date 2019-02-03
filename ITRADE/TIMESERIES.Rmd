@@ -1,0 +1,95 @@
+---
+title: "temp1"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+anomaly_data <- read.csv("Anomaly_Data.csv")
+
+anomaly_data$DC_QTY <- as.numeric(as.character(anomaly_data$DC_QTY))
+```
+
+
+```{r}
+anomaly_data$TRANSACTION_DATE = str_replace_all(anomaly_data$TRANSACTION_DATE,pattern = "MAR",replacement="03")
+anomaly_data$TRANSACTION_DATE = str_replace_all(anomaly_data$TRANSACTION_DATE,pattern = "APR",replacement="04")
+anomaly_data$TRANSACTION_DATE = str_replace_all(anomaly_data$TRANSACTION_DATE,pattern = "MAY",replacement="05")
+anomaly_data$TRANSACTION_DATE = str_replace_all(anomaly_data$TRANSACTION_DATE,pattern = "JUN",replacement="06")
+
+anomaly_data$TRANSACTION_DATE = str_replace_all(anomaly_data$TRANSACTION_DATE,pattern = "JUL",replacement="07")
+anomaly_data$TRANSACTION_DATE = str_replace_all(anomaly_data$TRANSACTION_DATE,pattern = "AUG",replacement="08")
+anomaly_data$TRANSACTION_DATE = str_replace_all(anomaly_data$TRANSACTION_DATE,pattern = "SEP",replacement="09")
+anomaly_data$TRANSACTION_DATE = str_replace_all(anomaly_data$TRANSACTION_DATE,pattern = "OCT",replacement="10")
+
+anomaly_data$TRANSACTION_DATE = str_replace_all(anomaly_data$TRANSACTION_DATE,pattern = "NOV",replacement="11")
+anomaly_data$TRANSACTION_DATE = str_replace_all(anomaly_data$TRANSACTION_DATE,pattern = "DEC",replacement="12")
+anomaly_data$TRANSACTION_DATE = str_replace_all(anomaly_data$TRANSACTION_DATE,pattern = "JAN",replacement="01")
+anomaly_data$TRANSACTION_DATE = str_replace_all(anomaly_data$TRANSACTION_DATE,pattern = "FEB",replacement="02")
+```
+
+```{r}
+anomaly_data$TRANSACTION_DATE = dmy(anomaly_data$TRANSACTION_DATE)
+```
+
+```{r}
+library(anomalize)
+library(tidyverse)
+library(tibbletime)
+```
+
+
+```{r}
+
+  cleaner_qty <- anomaly_data %>% 
+    filter(DELIVERED_QUANTITY>0&DC_QTY>0)%>%
+    mutate(unit_price_discrepancy = abs((DELIVERED_PRICE/DELIVERED_QUANTITY)-UNIT_PRICE))
+
+
+
+ tf <- cleaner_qty %>%
+    filter(unit_price_discrepancy<=1&DC_QTY==DELIVERED_QUANTITY)%>%
+    mutate(month = month(TRANSACTION_DATE)) %>%
+  filter(ORGANIZATION.NUMBER=="FRESHPOINT_158")%>%
+  filter(ACCOUNT_NAME=="BRINKER-CHILI'S #075")
+ 
+tf<- tf %>%
+ filter(CENTER_PROD_NUM  == 101217)
+ 
+newdata <- data.frame(tf$TRANSACTION_DATE,tf$DELIVERED_PRICE)
+ex1_tbl_time <- as_tbl_time(newdata, tf.TRANSACTION_DATE)
+
+```
+
+```{r}
+ tf %>%
+ filter(CENTER_PROD_NUM  == 101217)%>%
+  filter(DELIVERED_PRICE>30)
+```
+
+
+```{r}
+
+# Time Frequency
+time_frequency(ex1_tbl_time, period = "auto")
+#> frequency = 7 days
+#> [1] 7
+# Time Trend
+time_trend(ex1_tbl_time, period = "auto")
+#> trend = 91 days
+#> [1] 91
+
+ex1_tbl_time%>%
+    as_period("daily")%>%
+    time_decompose(tf.DELIVERED_PRICE, method = "STL") %>%
+    anomalize(remainder, method = "iqr",alpha = 0.025) %>%
+    time_recompose() %>%
+    # Anomaly Visualization
+    plot_anomalies(time_recomposed = TRUE, ncol = 3, alpha_dots = 0.25) +
+    labs(title = "Tidyverse Anomalies", subtitle = "STL + IQR Methods")
+
+
+```

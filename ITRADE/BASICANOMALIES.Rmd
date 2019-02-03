@@ -1,0 +1,152 @@
+---
+title: "Anomaly_Data"
+output: html_document
+---
+```{r}
+
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(lubridate)
+```
+
+## R Markdown
+
+```{r}
+anomaly_data <- read.csv("Anomaly_Data.csv")
+
+anomaly_data$DC_QTY <- as.numeric(as.character(anomaly_data$DC_QTY))
+
+```
+```{r}
+anomaly_data$TRANSACTION_DATE = str_replace_all(anomaly_data$TRANSACTION_DATE,pattern = "MAR",replacement="03")
+anomaly_data$TRANSACTION_DATE = str_replace_all(anomaly_data$TRANSACTION_DATE,pattern = "APR",replacement="04")
+anomaly_data$TRANSACTION_DATE = str_replace_all(anomaly_data$TRANSACTION_DATE,pattern = "MAY",replacement="05")
+anomaly_data$TRANSACTION_DATE = str_replace_all(anomaly_data$TRANSACTION_DATE,pattern = "JUN",replacement="06")
+
+anomaly_data$TRANSACTION_DATE = str_replace_all(anomaly_data$TRANSACTION_DATE,pattern = "JUL",replacement="07")
+anomaly_data$TRANSACTION_DATE = str_replace_all(anomaly_data$TRANSACTION_DATE,pattern = "AUG",replacement="08")
+anomaly_data$TRANSACTION_DATE = str_replace_all(anomaly_data$TRANSACTION_DATE,pattern = "SEP",replacement="09")
+anomaly_data$TRANSACTION_DATE = str_replace_all(anomaly_data$TRANSACTION_DATE,pattern = "OCT",replacement="10")
+
+anomaly_data$TRANSACTION_DATE = str_replace_all(anomaly_data$TRANSACTION_DATE,pattern = "NOV",replacement="11")
+anomaly_data$TRANSACTION_DATE = str_replace_all(anomaly_data$TRANSACTION_DATE,pattern = "DEC",replacement="12")
+anomaly_data$TRANSACTION_DATE = str_replace_all(anomaly_data$TRANSACTION_DATE,pattern = "JAN",replacement="01")
+anomaly_data$TRANSACTION_DATE = str_replace_all(anomaly_data$TRANSACTION_DATE,pattern = "FEB",replacement="02")
+
+```
+
+
+```{r}
+
+anomaly_data$TRANSACTION_DATE = dmy(anomaly_data$TRANSACTION_DATE)
+```
+
+
+```{r}
+  #some DCQTYs are missing
+
+
+#non need to deal with positive deliveries/negative prices or DC_QTY<0 when DELIVERED QTY less than 0
+
+  #are fields missing?
+  cleaner_qty <- anomaly_data %>% 
+    filter(DELIVERED_QUANTITY>0&DC_QTY>0)%>%
+    mutate(unit_price_discrepancy = abs((DELIVERED_PRICE/DELIVERED_QUANTITY)-UNIT_PRICE))
+
+ #check for unit discrepancy, qty discrepancy for things without weird quantities
+  cleaner_qty_anomalies <- cleaner_qty %>%
+    filter(unit_price_discrepancy>1|DC_QTY!=DELIVERED_QUANTITY)
+  
+  
+  orderIssues <- anomaly_data %>% 
+    filter(DELIVERED_QUANTITY<=0 | DC_QTY <= 0)
+  
+  #if DCQTY=1, delivered qty = 0 , price negative, valid return, voided same order
+  #If dcqty = 0, delivered qty=1, price negative,???
+  
+  zeroData<-orderIssues %>%
+    filter(DELIVERED_QUANTITY==0|DC_QTY == 0)
+    #check for return anomalies
+  order_problems_DC <-zeroData %>%
+    filter(DC_QTY>0 & DELIVERED_PRICE/DC_QTY!=UNIT_PRICE*-1)
+  
+  order_problems_delivered <- zeroData %>%
+    filter(DELIVERED_QUANTITY>0 )
+  
+    #check for more return anomalies
+  
+```
+
+```{r}
+  orderIssues %>%
+    filter(DELIVERED_QUANTITY<0 | DC_QTY<0)%>%
+    filter(abs((DELIVERED_PRICE/DELIVERED_QUANTITY)-UNIT_PRICE)>0.05)
+```
+
+
+```{r}
+orderIssues %>%
+    filter(DC_QTY<0)
+```
+
+
+
+```{r}
+  #time frame stuff
+  #something ordered at unuusal quantities
+
+  #something ordered regularly not ordered
+  #time frame stuff
+
+  #filtered for qty/return abnormalities
+
+  time_frame_first_combo <- cleaner_qty %>%
+    filter(unit_price_discrepancy<=1&DC_QTY==DELIVERED_QUANTITY)%>%
+    mutate(month = month(TRANSACTION_DATE)) %>%
+    filter(ACCOUNT_NAME=="BRINKER-CHILI'S #075")%>%
+  filter(ORGANIZATION.NUMBER=="FRESHPOINT_158")
+
+
+product_list <- time_frame_first_combo%>%
+  distinct(CENTER_PROD_NUM)
+
+time_frame_first_combo %>%
+ filter(CENTER_PROD_NUM  == i)%>%
+  group_by(month) %>%
+  summarise(counts = n())
+  
+
+
+
+
+```
+
+
+```{r}
+
+
+
+```
+
+```{r}
+
+```
+
+
+
+```{r}
+
+
+```
+
+
+
+```{r}
+
+str(anomaly_data)
+```
+
