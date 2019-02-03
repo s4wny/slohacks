@@ -1,9 +1,3 @@
-################################################################################
-# FILE:         itrade_luminol_01.py
-# ORIGINATOR:   WALLSTRÖM, Andreas
-# AUTHORS:      CHEN, Kedwin; WALLSTRÖM, Andreas
-################################################################################
-
 import time
 import os
 import pandas as pd
@@ -47,8 +41,8 @@ def plot_anomalies(ts, anomalies, extreme = None):
         x_extreme_dates = [ datetime.fromtimestamp(x) for x in extreme.keys() ]
         pyplot.scatter(x_extreme_dates, extreme.values(), c='yellow')
 
-    pyplot.scatter(x_ts_dates, ts.values())
-    pyplot.scatter(x_anomalies_dates, anomalies.values(), c='red')
+    pyplot.scatter(x_ts_dates, list(ts.values()))
+    pyplot.scatter(x_anomalies_dates, list(anomalies.values()), c='red')
 
     # Set axis to be labeled by dates
     monthyearFmt = dates.DateFormatter('%Y %B')
@@ -82,7 +76,7 @@ def print_plot_of_qty(csv_path, group_by, qty_interest, include_extremes=False, 
     algo_name = 'derivative_detector'
     #algo_name = 'exp_avg_detector'
     algo_params = {
-        'smoothing_factor' : 0.94,
+        'smoothing_factor' : 0.2,
     #    'lag_window_size' : int(0.2 * len(gkeys)),
     #    'use_lag_window' : True,
     }
@@ -148,6 +142,7 @@ def display_menu():
     )
 
 def main():
+    #FILE = 'anomaly-5k.csv'
     FILE = 'Anomaly_Data_NO-CR.csv'
     s_input = ""
     cmd = ""
